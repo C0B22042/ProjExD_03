@@ -107,13 +107,206 @@ class Bomb:
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
 
+class Beam:
+    """
+     beam に関するクラス
+    """
+    __beam_count = 0
+    
+    def __init__(self):
+        """
+         beam surfaceを生成
+        """
+        self.beam_surface = pg.image.load("ex03/fig/beam.png")
+        self.sur_beams = dict()
+    
+    """
+     beam surfaceをSurfaces classに渡し、初期化
+     bird_rctに依存したbeamの始点を代入
+    """
+    def MakeBeam(self, bird_rct):
+        self.sur_beams[self.__beam_count] = Surfaces([self.beam_surface], [[5, 0]])
+        beam_rct = [bird_rct[i] + bird_rct[i+2]//(i+1)-5 for i in range(len(bird_rct)-2)]
+        self.sur_beams[self.__beam_count].set_rects([beam_rct])
+        self.__beam_count += 1
+        return
+
+    """
+     screenに表示、また画面外のbeam surfaceを削除
+    """    
+    def Load(self, screen: pg.Surface):
+        del_key = list()
+        for key in self.sur_beams:
+            rect = self.sur_beams[key].rects[0]
+            if rect[0] > WIDTH:
+                del_key.append(key)
+                continue
+            self.sur_beams[key].LoadRect()
+            screen.blit(*self.sur_beams[key].get_blit(0))
+        for key in del_key:
+            del self.sur_beams[key]
+        return
+    
+    def explosion(self, bombs):
+        del_key = list()
+        for key in self.sur_beams:
+            if bombs.colliderect(self.sur_beams[key].rects[0]):
+                del_key.append(key)
+        for key in del_key:
+            del self.sur_beams[key]
+        return len(del_key) > 0
+        
+
+"""
+ Surfaces class is surface objects management module
+  surface objectをlist型、またはdict型で一括管理することが可能です。
+"""
+class Surfaces:
+
+    """
+      __init__
+    　　Surfaces classの初期化、または初期データ代入
+    """
+    def __init__(self, surfaces: list["Surface", ...] = None,
+                 move_rp: list[list[float, float], ...] = [[0.0, 0.0]]):
+        self.surfaces = list()
+        self.rects = list()
+        self.move_rp = list()
+        self.__move_result = list()
+
+        if surfaces is not None:
+            self.__AddList(surfaces, move_rp)
+
+    """
+     MakeDict methode
+      surfaces, move_rp, rectsのdictionary化
+    """
+    def MakeDict(self, keys: list[str, ...] | list[tuple, ...]):
+        temporary = self.surfaces, self.move_rp, self.__move_result, self.rects
+        self.surfaces, self.move_rp, self.__move_result, self.rects = [dict() for i in range(len(temporary))]
+
+        self.__AddDict(temporary[0], temporary[1], temporary[2], keys)
+
+    """
+     Add methode
+      新しいsurface objectの追加代入
+    """
+    def Add(self, surfaces: list["Surface", ...], move_rp: list[list[float, float], ...] = [[0.0, 0.0]],
+            keys: list[str, ...] | list[tuple, ...] = None):
+        if type(self.surfaces) is list:
+            self.__AddList(surfaces)
+        else:
+            self.__AddDict(surfaces, move_rp, keys)
+
+    # protected methode
+    def __AddList(self, surfaces, move_rp):
+        move_rp_one = self.__NumCheckMoveRP(move_rp, surfaces)
+
+        for i, surface in enumerate(surfaces):
+            self.surfaces.append(surface)
+            self.rects.append(surface.get_rect())
+            if move_rp_one: i = 0
+            self.move_rp.append(move_rp[i])
+            self.__move_result.append([float(self.rects[-1][0]), float(self.rects[-1][1])])
+        return
+
+    # protected methode
+    def __AddDict(self, surfaces, move_rp, move_result, keys):
+        move_rp_one = self.__NumCheckMoveRP(move_rp, surfaces)
+
+        for i, (surface, key) in enumerate(zip(surfaces, keys)):
+            self.surfaces[key] = surface
+            self.rects[key] = surface.get_rect()
+            if move_rp_one: i = 0
+            self.move_rp[key] = move_rp[i]
+            self.__move_result[key] = move_result[i]
+        return
+
+    # protected methode
+    @staticmethod
+    def __NumCheckMoveRP(move_rp, surfaces):
+        if len(move_rp) != 1:
+            if len(move_rp) != len(surfaces):
+                raise TypeError(
+                    "Number of data in move_rp does not match surfaces - "
+                    "len(move_rp) != len(surface) and len(move_rp) != 1")
+            return False
+        else:
+            return True
+
+    """
+     LoadRect methode
+      __move_resultにmove_rpに従った数値(float)を加算
+    """
+    def LoadRect(self):
+        if type(self.surfaces) is list:
+            for i in range(len(self.rects)):
+                for j in range(2):
+                    self.__move_result[i][j] += self.move_rp[i][j]
+            return
+        else:
+            for key in self.surfaces:
+                for j in range(2):
+                    self.__move_result[key][j] += self.move_rp[key][j]
+            return
+
+    """
+     get_blit mothode
+      Surface.blit()に利用する引数のlist型を出力
+      (なお、__move_resultをrectsに代入して処理する)
+    """
+    def get_blit(self, index_or_key: int | str | tuple):
+        self.WriteRect()
+        if type(self.surfaces) is list:
+            return self.surfaces[index_or_key], self.rects[index_or_key]
+        else:
+            return [self.surfaces[index_or_key], self.rects[index_or_key]]
+
+    """
+     WriteRect methode
+      __move_resultのデータを整数化し、rectsに代入
+      (特異的処理以外ではWriteRectでのみデータを変更する)
+    """
+    def WriteRect(self):
+        if type(self.surfaces) is list:
+            for i in range(len(self.__move_result)):
+                self.rects[i][:2] = [int(self.__move_result[i][0]), int(self.__move_result[i][1])]
+            return
+        else:
+            self.rects = dict()
+            for key in self.surfaces:
+                self.rects[key][:2] = [int(self.__move_result[key][0]), int(self.__move_result[key][1])]
+            return
+        
+    def set_rects(self, rects: list[pg.Rect, ...]):
+        if len(rects) != 1:
+            if len(rects) != len(self.surfaces):
+                raise TypeError(
+                    "Number of data in move_rp does not match surfaces - "
+                    "len(move_rp) != len(surface) and len(move_rp) != 1")
+        for i in range(len(self.surfaces)):
+            self.__move_result[i] = rects[i]
+
+
+"""
+ SurDicts methode
+  Surface classのdictionary化までを行い、classデータを出力
+"""
+def SurDicts(surfaces: list["Surface", ...], keys: list[str, ...] | list[tuple, ...],
+             move_rp: list[list[float, float], ...] = [[0.0, 0.0]]):
+    sur = Surfaces(surfaces, move_rp)
+    sur.MakeDict(keys)
+    return sur
+
+
 
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
     bird = Bird(3, (int(WIDTH*9/16), int(HEIGHT*4/9)))
-    bomb = Bomb((255, 0, 0), 10)
+    bombs = [Bomb((255, 0, 0), 10)]
+    beam = Beam()
 
     clock = pg.time.Clock()
     tmr = 0
@@ -121,19 +314,33 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
+            
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_SPACE:
+                    beam.MakeBeam(bird.rct)
         
         screen.blit(bg_img, [0, 0])
         
-        if bird.rct.colliderect(bomb.rct):
-            # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
-            bird.change_img(8, screen)
-            pg.display.update()
-            time.sleep(1)
-            return
+        del_index = list()
+        for i in range(len(bombs)):
+            if bird.rct.colliderect(bombs[i].rct):
+                # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
+                bird.change_img(8, screen)
+                pg.display.update()
+                time.sleep(1)
+                return
+        # beamとbombsの衝突判定、削除
+            if beam.explosion(bombs[i].rct):
+                del_index.append(i)
+        for i in del_index:
+            del bombs[i]
+        # 更新
+        for i in range(len(bombs)):
+            bombs[i].update(screen)
 
         key_lst = pg.key.get_pressed()
         bird.update(key_lst, screen)
-        bomb.update(screen)
+        beam.Load(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
