@@ -34,13 +34,22 @@ class Bird:
         pg.K_RIGHT: (+5, 0),
     }
 
+    ang = list()
+    for i in range(8):
+        ang.append([-i*45+90, i>4])
+
+    angles = dict(zip(
+        [(0, -5), (5, -5), (5, 0), (5, 5), (0, 5), (-5, 5), (-5, 0), (-5, -5)], 
+        ang
+    ))
+
     def __init__(self, num: int, xy: tuple[int, int]):
         """
         こうかとん画像Surfaceを生成する
         引数1 num：こうかとん画像ファイル名の番号
         引数2 xy：こうかとん画像の位置座標タプル
         """
-        self.img = pg.transform.flip(  # 左右反転
+        self.original_img = pg.transform.flip(  # 左右反転
             pg.transform.rotozoom(  # 2倍に拡大
                 pg.image.load(f"ex03/fig/{num}.png"), 
                 0, 
@@ -48,10 +57,11 @@ class Bird:
             True, 
             False
         )
+        self.img = self.original_img
         self.rct = self.img.get_rect()
         self.rct.center = xy
 
-    def change_img(self, num: int, screen: pg.Surface):
+    def change_img(self, num: int, screen: pg.Surface, ):
         """
         こうかとん画像を切り替え，画面に転送する
         引数1 num：こうかとん画像ファイル名の番号
@@ -60,7 +70,7 @@ class Bird:
         self.img = pg.transform.rotozoom(pg.image.load(f"ex03/fig/{num}.png"), 0, 2.0)
         screen.blit(self.img, self.rct)
 
-    def update(self, key_lst: list[bool], screen: pg.Surface):
+    def update(self, key_lst: list[bool], screen: pg.Surface, invaldation_angle = False):
         """
         押下キーに応じてこうかとんを移動させる
         引数1 key_lst：押下キーの真理値リスト
@@ -74,6 +84,12 @@ class Bird:
         self.rct.move_ip(sum_mv)
         if check_bound(self.rct) != (True, True):
             self.rct.move_ip(-sum_mv[0], -sum_mv[1])
+        if not invaldation_angle and sum_mv != [0, 0]:
+            angle, flip = __class__.angles[tuple(sum_mv)]
+            sub_img = self.original_img
+            if flip:
+                sub_img = pg.transform.flip(self.original_img, False, True)
+            self.img = pg.transform.rotozoom(sub_img, angle, 1.0)
         screen.blit(self.img, self.rct)
 
 
