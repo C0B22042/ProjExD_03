@@ -174,6 +174,33 @@ class Beam:
         for key in del_key:
             del self.sur_beams[key]
         return len(del_key) > 0
+    
+
+class explosion:
+
+    def __init__(self) -> None:
+        self.explosion_img = pg.image.load("ex03/fig/explosion.gif")
+        self.explosions = Surfaces()
+        self.explosions_count = list()
+    
+    def Make(self, rect: pg.Rect):
+        self.explosions.Add([self.explosion_img])
+        self.explosions.set_rect(rect, -1)
+        self.explosions_count.append(0)
+        return
+    
+    def Update(self, screen: pg.Surface):
+        del_index = list()
+        for i in range(len(self.explosions.surfaces)):
+            self.explosions_count[i] += 1
+            if self.explosions_count[i] > 40:
+                del_index.append(i)
+                continue
+            screen.blit(*self.explosions.get_blit(i))
+        for i in range(len(del_index)):
+            self.explosions.del_surface(i)
+            del self.explosions_count[i]
+        return
         
 
 """
@@ -213,7 +240,7 @@ class Surfaces:
     def Add(self, surfaces: list["Surface", ...], move_rp: list[list[float, float], ...] = [[0.0, 0.0]],
             keys: list[str, ...] | list[tuple, ...] = None):
         if type(self.surfaces) is list:
-            self.__AddList(surfaces)
+            self.__AddList(surfaces, move_rp)
         else:
             self.__AddDict(surfaces, move_rp, keys)
 
@@ -275,18 +302,18 @@ class Surfaces:
       (なお、__move_resultをrectsに代入して処理する)
     """
     def get_blit(self, index_or_key: int | str | tuple):
-        self.WriteRect()
+        self.UpdateRect()
         if type(self.surfaces) is list:
             return self.surfaces[index_or_key], self.rects[index_or_key]
         else:
             return [self.surfaces[index_or_key], self.rects[index_or_key]]
 
     """
-     WriteRect methode
+     LoadRect methode
       __move_resultのデータを整数化し、rectsに代入
-      (特異的処理以外ではWriteRectでのみデータを変更する)
+      (特異的処理以外ではLoadRectでのみデータを変更する)
     """
-    def WriteRect(self):
+    def UpdateRect(self):
         if type(self.surfaces) is list:
             for i in range(len(self.__move_result)):
                 self.rects[i][:2] = [int(self.__move_result[i][0]), int(self.__move_result[i][1])]
@@ -306,6 +333,15 @@ class Surfaces:
         for i in range(len(self.surfaces)):
             self.__move_result[i] = rects[i]
 
+    def set_rect(self, rect: list[pg.Rect], index: int):
+        self.__move_result[index][:2] = rect[:2]
+
+    def del_surface(self, index: int):
+        del self.surfaces[index]
+        del self.rects[index]
+        del self.__move_result[index]
+        del self.move_rp[index]
+
 
 """
  SurDicts methode
@@ -318,14 +354,14 @@ def SurDicts(surfaces: list["Surface", ...], keys: list[str, ...] | list[tuple, 
     return sur
 
 
-
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
     bird = Bird(3, (int(WIDTH*9/16), int(HEIGHT*4/9)))
-    bombs = [Bomb((255, 0, 0), random.randint(1, 25)) for i in range(10)]
+    bombs = [Bomb((255, 0, 0), random.randint(1, 25)) for i in range(5)]
     beam = Beam()
+    expl = explosion()
 
     clock = pg.time.Clock()
     tmr = 0
@@ -354,6 +390,7 @@ def main():
                 del_index.append(i)
                 bird.change_img(9, screen)
                 happy_count = -30
+                expl.Make(bombs[i].rct)
         for i in del_index:
             del bombs[i]
         # 更新
@@ -365,6 +402,8 @@ def main():
         if happy_count < 1: inv = True
         bird.update(key_lst, screen, invaldation_angle=inv)
         beam.Load(screen)
+
+        expl.Update(screen)
         pg.display.update()
 
         if happy_count == 0:
