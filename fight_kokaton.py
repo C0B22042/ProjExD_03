@@ -310,6 +310,7 @@ def main():
 
     clock = pg.time.Clock()
     tmr = 0
+    happy_count = 1
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -332,6 +333,8 @@ def main():
         # beamとbombsの衝突判定、削除
             if beam.explosion(bombs[i].rct):
                 del_index.append(i)
+                bird.change_img(9, screen)
+                happy_count = -30
         for i in del_index:
             del bombs[i]
         # 更新
@@ -342,6 +345,10 @@ def main():
         bird.update(key_lst, screen)
         beam.Load(screen)
         pg.display.update()
+
+        if happy_count == 0:
+            bird.change_img(3, screen)
+        happy_count += 1
         tmr += 1
         clock.tick(50)
 
