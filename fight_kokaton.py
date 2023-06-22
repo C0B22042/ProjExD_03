@@ -1,6 +1,7 @@
 import random
 import sys
 import time
+import math
 
 import pygame as pg
 
@@ -108,7 +109,9 @@ class Bomb:
         self.img.set_colorkey((0, 0, 0))
         self.rct = self.img.get_rect()
         self.rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
-        self.vx, self.vy = +5, +5
+        random.randint(0, 360)
+        angle = math.radians(random.randint(0, 360))
+        self.vx, self.vy = math.cos(angle)*5, math.sin(angle)*5
 
     def update(self, screen: pg.Surface):
         """
@@ -321,7 +324,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
     bird = Bird(3, (int(WIDTH*9/16), int(HEIGHT*4/9)))
-    bombs = [Bomb((255, 0, 0), 10)]
+    bombs = [Bomb((255, 0, 0), random.randint(1, 25)) for i in range(10)]
     beam = Beam()
 
     clock = pg.time.Clock()
@@ -358,12 +361,15 @@ def main():
             bombs[i].update(screen)
 
         key_lst = pg.key.get_pressed()
-        bird.update(key_lst, screen)
+        inv = False
+        if happy_count < 1: inv = True
+        bird.update(key_lst, screen, invaldation_angle=inv)
         beam.Load(screen)
         pg.display.update()
 
         if happy_count == 0:
             bird.change_img(3, screen)
+            bird.update(key_lst, screen)
         happy_count += 1
         tmr += 1
         clock.tick(50)
