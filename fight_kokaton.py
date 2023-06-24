@@ -44,6 +44,8 @@ class Bird:
         ang
     ))
 
+    angle = 0
+
     def __init__(self, num: int, xy: tuple[int, int]):
         """
         こうかとん画像Surfaceを生成する
@@ -86,12 +88,15 @@ class Bird:
         if check_bound(self.rct) != (True, True):
             self.rct.move_ip(-sum_mv[0], -sum_mv[1])
         if not invaldation_angle and sum_mv != [0, 0]:
-            angle, flip = __class__.angles[tuple(sum_mv)]
+            self.angle, flip = __class__.angles[tuple(sum_mv)]
             sub_img = self.original_img
             if flip:
                 sub_img = pg.transform.flip(self.original_img, False, True)
-            self.img = pg.transform.rotozoom(sub_img, angle, 1.0)
+            self.img = pg.transform.rotozoom(sub_img, self.angle, 1.0)
         screen.blit(self.img, self.rct)
+
+    def get_Angle(self):
+        return self.angle
 
 
 class Bomb:
@@ -126,7 +131,7 @@ class Bomb:
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
 
-class Beam:
+class Beam: 
     """
      beam に関するクラス
     """
@@ -143,9 +148,14 @@ class Beam:
      beam surfaceをSurfaces classに渡し、初期化
      bird_rctに依存したbeamの始点を代入
     """
-    def MakeBeam(self, bird_rct):
-        self.sur_beams[self.__beam_count] = Surfaces([self.beam_surface], [[5, 0]])
-        beam_rct = [bird_rct[i] + bird_rct[i+2]//(i+1)-5 for i in range(len(bird_rct)-2)]
+    def MakeBeam(self, bird: Bird):
+        angle = bird.get_Angle()
+        new_beam_surface = pg.transform.rotozoom(self.beam_surface, angle, 1.0)
+        rad_angle = math.radians(angle)
+        xy_for_angle = [math.cos(rad_angle)*5, -math.sin(rad_angle)*5]
+        self.sur_beams[self.__beam_count] = Surfaces([new_beam_surface], [xy_for_angle])
+        beam_rct = self.sur_beams[self.__beam_count].rects[0]
+        beam_rct[:2] = [bird.rct[i] + bird.rct[i+2]//2 - beam_rct[i+2]//2 + f3*12 for i,f3 in enumerate(xy_for_angle)]
         self.sur_beams[self.__beam_count].set_rects([beam_rct])
         self.__beam_count += 1
         return
@@ -179,26 +189,27 @@ class Beam:
 class explosion:
 
     def __init__(self) -> None:
-        self.explosion_img = pg.image.load("ex03/fig/explosion.gif")
-        self.explosions = Surfaces()
+        self.explosion_img = [pg.image.load("ex03/fig/explosion.gif")]
+        self.explosion_img.append(pg.transform.flip(self.explosion_img[0], True, True))
+        self.explosions = list()
         self.explosions_count = list()
     
     def Make(self, rect: pg.Rect):
-        self.explosions.Add([self.explosion_img])
-        self.explosions.set_rect(rect, -1)
+        self.explosions.append(Surfaces(self.explosion_img))
+        self.explosions[-1].set_rects([rect for i in range(2)]) 
         self.explosions_count.append(0)
         return
     
     def Update(self, screen: pg.Surface):
         del_index = list()
-        for i in range(len(self.explosions.surfaces)):
+        for i in range(len(self.explosions)):
             self.explosions_count[i] += 1
             if self.explosions_count[i] > 40:
                 del_index.append(i)
                 continue
-            screen.blit(*self.explosions.get_blit(i))
+            screen.blit(*self.explosions[i].get_blit(self.explosions_count[i]%2))
         for i in range(len(del_index)):
-            self.explosions.del_surface(i)
+            del self.explosions[i]
             del self.explosions_count[i]
         return
         
@@ -359,7 +370,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
     bird = Bird(3, (int(WIDTH*9/16), int(HEIGHT*4/9)))
-    bombs = [Bomb((255, 0, 0), random.randint(1, 25)) for i in range(5)]
+    bombs = [Bomb((255, 0, 0), random.randint(1, 25)) for i in range(3)]
     beam = Beam()
     expl = explosion()
 
@@ -367,14 +378,16 @@ def main():
     tmr = 0
     happy_count = 1
     while True:
+        key_lst = pg.key.get_pressed()
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
             
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_SPACE:
-                    beam.MakeBeam(bird.rct)
-        
+                    beam.MakeBeam(bird)
+      
         screen.blit(bg_img, [0, 0])
         
         del_index = list()
@@ -397,7 +410,6 @@ def main():
         for i in range(len(bombs)):
             bombs[i].update(screen)
 
-        key_lst = pg.key.get_pressed()
         inv = False
         if happy_count < 1: inv = True
         bird.update(key_lst, screen, invaldation_angle=inv)
@@ -409,6 +421,7 @@ def main():
         if happy_count == 0:
             bird.change_img(3, screen)
             bird.update(key_lst, screen)
+            bird.angle = 180
         happy_count += 1
         tmr += 1
         clock.tick(50)
