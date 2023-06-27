@@ -124,13 +124,21 @@ class Bomb:
                     if not (prohibited_range[1] < xy[1] < prohibited_range[3]):
                         break
             return xy
-
+        
         self.img = pg.Surface((2*rad, 2*rad))
         pg.draw.circle(self.img, color, (rad, rad), rad)
         self.img.set_colorkey((0, 0, 0))
         self.rct = self.img.get_rect()
 
+        color = list(color)
+        self.notice_img = pg.Surface((2*rad, 2*rad))
+        pg.draw.circle(self.notice_img, color, (rad, rad), rad)
+        self.notice_img.set_colorkey((0, 0, 0))
+        self.notice_img.set_alpha(127)
+
         self.rct.center = gen_rec_rand_xy()
+
+        self.notice = -50
             
             
         random.randint(0, 360)
@@ -142,13 +150,19 @@ class Bomb:
         爆弾を速度ベクトルself.vx, self.vyに基づき移動させる
         引数 screen：画面Surface
         """
-        yoko, tate = check_bound(self.rct)
-        if not yoko:
-            self.vx *= -1
-        if not tate:
-            self.vy *= -1
-        self.rct.move_ip(self.vx, self.vy)
-        screen.blit(self.img, self.rct)
+        if self.notice < 0:
+            screen.blit(self.notice_img, self.rct)
+
+        else:
+            yoko, tate = check_bound(self.rct)
+            if not yoko:
+                self.vx *= -1
+            if not tate:
+                self.vy *= -1
+            self.rct.move_ip(self.vx, self.vy)
+            screen.blit(self.img, self.rct)
+
+        self.notice += 1
 
 class Beam: 
     """
@@ -249,10 +263,12 @@ class explosion:
         return
     
     def HitJudge(self, bird: Bird) -> bool:
+        """
+            explosion に当たり判定を追加
+        """
         explosion: Surfaces = None
         for explosion in self.explosions:
             explosion.UpdateRect()
-            print(explosion.rects[0])
             if bird.rct.colliderect(explosion.rects[0]):
                 return True
         return False
@@ -451,7 +467,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
     bird = Bird(3, (int(WIDTH*9/16), int(HEIGHT*4/9)))
-    bombs = [Bomb((255, 0, 0), random.randint(1, 25), bird) for i in range(3)]
+    bombs = [Bomb((255, 0, 0), random.randint(1, 25), bird) for i in range(5)]
     beam = Beam()
     expl = explosion()
     sco = Score()
@@ -477,29 +493,30 @@ def main():
 
         screen.blit(bg_img, [0, 0])
 
+        # expl 当たり判定
+        if expl.HitJudge(bird):
+            game_over(bird, screen)
+            return
+
         del_index = list()
         for i in range(len(bombs)):
-            if bird.rct.colliderect(bombs[i].rct):
+            if bird.rct.colliderect(bombs[i].rct) and not bombs[i].notice < 0:
                 game_over(bird, screen)
                 return
         # beamとbombsの衝突判定、削除
-            if beam.explosion(bombs[i].rct):
-                del_index.append(i)
-                bird.change_img(9, screen)
-                happy_count = -30
-                expl.Make(bombs[i].rct)
-                sco.count_up()
-                bombs.append(Bomb((255, 0, 0), random.randint(1, 25), bird))
+            if not bombs[i].notice < 0:
+                if beam.explosion(bombs[i].rct):
+                    del_index.append(i)
+                    bird.change_img(9, screen)
+                    happy_count = -30
+                    expl.Make(bombs[i].rct)
+                    sco.count_up()
+                    bombs.append(Bomb((255, 0, 0), random.randint(1, 25), bird))
         for i in del_index:
             del bombs[i]
         #  更新
         for i in range(len(bombs)):
             bombs[i].update(screen)
-        
-        # expl 当たり判定
-        if expl.HitJudge(bird):
-            game_over(bird, screen)
-            return
 
         inv = False
         if happy_count < 1: inv = True
