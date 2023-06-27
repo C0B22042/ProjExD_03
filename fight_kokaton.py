@@ -113,7 +113,7 @@ class Bomb:
         pg.draw.circle(self.img, color, (rad, rad), rad)
         self.img.set_colorkey((0, 0, 0))
         self.rct = self.img.get_rect()
-        self.rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
+        self.rct.center = random.randint(0+rad, WIDTH-rad), random.randint(0+rad, HEIGHT-rad)
         random.randint(0, 360)
         angle = math.radians(random.randint(0, 360))
         self.vx, self.vy = math.cos(angle)*5, math.sin(angle)*5
