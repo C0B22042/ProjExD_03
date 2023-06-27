@@ -247,6 +247,15 @@ class explosion:
             del self.explosions[i]
             del self.explosions_count[i]
         return
+    
+    def HitJudge(self, bird: Bird) -> bool:
+        explosion: Surfaces = None
+        for explosion in self.explosions:
+            explosion.UpdateRect()
+            print(explosion.rects[0])
+            if bird.rct.colliderect(explosion.rects[0]):
+                return True
+        return False
         
 class Score:
     """
@@ -428,6 +437,13 @@ def SurDicts(surfaces: list["Surface", ...], keys: list[str, ...] | list[tuple, 
     sur.MakeDict(keys)
     return sur
 
+def game_over(bird: Bird, screen: pg.Surface):
+    # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
+    bird.change_img(8, screen)
+    pg.display.update()
+    time.sleep(1)
+    return 
+
 
 def main():
     # setup class and variables
@@ -464,10 +480,7 @@ def main():
         del_index = list()
         for i in range(len(bombs)):
             if bird.rct.colliderect(bombs[i].rct):
-                # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
-                bird.change_img(8, screen)
-                pg.display.update()
-                time.sleep(1)
+                game_over(bird, screen)
                 return
         # beamとbombsの衝突判定、削除
             if beam.explosion(bombs[i].rct):
@@ -482,6 +495,11 @@ def main():
         #  更新
         for i in range(len(bombs)):
             bombs[i].update(screen)
+        
+        # expl 当たり判定
+        if expl.HitJudge(bird):
+            game_over(bird, screen)
+            return
 
         inv = False
         if happy_count < 1: inv = True
