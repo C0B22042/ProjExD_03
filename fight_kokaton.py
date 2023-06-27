@@ -162,21 +162,25 @@ class Beam:
         """
         self.beam_surface = pg.image.load("ex03/fig/beam.png")
         self.sur_beams = dict()
+
+        self.cool_time = 1
     
     """
      beam surfaceをSurfaces classに渡し、初期化
      bird_rctに依存したbeamの始点を代入
     """
     def MakeBeam(self, bird: Bird):
-        angle = bird.get_Angle()
-        new_beam_surface = pg.transform.rotozoom(self.beam_surface, angle, 1.0)
-        rad_angle = math.radians(angle)
-        xy_for_angle = [math.cos(rad_angle)*5, -math.sin(rad_angle)*5]
-        self.sur_beams[self.__beam_count] = Surfaces([new_beam_surface], [xy_for_angle])
-        beam_rct = self.sur_beams[self.__beam_count].rects[0]
-        beam_rct[:2] = [bird.rct[i] + bird.rct[i+2]//2 - beam_rct[i+2]//2 + f3*12 for i,f3 in enumerate(xy_for_angle)]
-        self.sur_beams[self.__beam_count].set_rects([beam_rct])
-        self.__beam_count += 1
+        if self.cool_time > 0:
+            angle = bird.get_Angle()
+            new_beam_surface = pg.transform.rotozoom(self.beam_surface, angle, 1.0)
+            rad_angle = math.radians(angle)
+            xy_for_angle = [math.cos(rad_angle)*5, -math.sin(rad_angle)*5]
+            self.sur_beams[self.__beam_count] = Surfaces([new_beam_surface], [xy_for_angle])
+            beam_rct = self.sur_beams[self.__beam_count].rects[0]
+            beam_rct[:2] = [bird.rct[i] + bird.rct[i+2]//2 - beam_rct[i+2]//2 + f3*12 for i,f3 in enumerate(xy_for_angle)]
+            self.sur_beams[self.__beam_count].set_rects([beam_rct])
+            self.__beam_count += 1
+            self.cool_time = -30
         return
 
     """
@@ -193,6 +197,7 @@ class Beam:
             screen.blit(*self.sur_beams[key].get_blit(0))
         for key in del_key:
             del self.sur_beams[key]
+        self.cool_time += 1
         return
     
     def explosion(self, bombs):
@@ -493,6 +498,7 @@ def main():
             bird.change_img(3, screen)
             bird.update(key_lst, screen)
             bird.angle = 180
+        
         happy_count += 1
         tmr += 1
         clock.tick(50)
