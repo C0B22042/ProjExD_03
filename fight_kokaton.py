@@ -185,7 +185,6 @@ class Beam:
             del self.sur_beams[key]
         return len(del_key) > 0
     
-
 class explosion:
 
     def __init__(self) -> None:
@@ -213,6 +212,23 @@ class explosion:
             del self.explosions_count[i]
         return
         
+class Score:
+
+    def __init__(self):
+        self.font = pg.font.SysFont("hgp創英角ﾎﾟｯﾌﾟ体", 30)
+        self.color = (0, 0, 255)
+        self.score = -1
+
+        self.count_up()
+        
+    def count_up(self):
+        self.score += 1
+        self.sco_img = self.font.render(f"スコア:{self.score}", 0, self.color)
+        return
+    
+    def draw_score(self, screen: pg.Surface):
+        screen.blit(self.sco_img, self.sco_img.get_rect())
+        return
 
 """
  Surfaces class is surface objects management module
@@ -373,6 +389,7 @@ def main():
     bombs = [Bomb((255, 0, 0), random.randint(1, 25)) for i in range(3)]
     beam = Beam()
     expl = explosion()
+    sco = Score()
 
     clock = pg.time.Clock()
     tmr = 0
@@ -404,6 +421,8 @@ def main():
                 bird.change_img(9, screen)
                 happy_count = -30
                 expl.Make(bombs[i].rct)
+                sco.count_up()
+                bombs.append(Bomb((255, 0, 0), random.randint(1, 25)))
         for i in del_index:
             del bombs[i]
         # 更新
@@ -416,6 +435,9 @@ def main():
         beam.Load(screen)
 
         expl.Update(screen)
+
+        sco.draw_score(screen)
+
         pg.display.update()
 
         if happy_count == 0:
