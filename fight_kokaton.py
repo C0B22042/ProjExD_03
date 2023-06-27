@@ -103,17 +103,36 @@ class Bomb:
     """
     爆弾に関するクラス
     """
-    def __init__(self, color: tuple[int, int, int], rad: int):
+    def __init__(self, color: tuple[int, int, int], rad: int, bird: Bird):
         """
         引数に基づき爆弾円Surfaceを生成する
         引数1 color：爆弾円の色タプル
         引数2 rad：爆弾円の半径
         """
+
+        def gen_rec_rand_xy():
+            """
+                bird周辺のボム生成を制限する
+            """
+            prohibited_range = bird.rct[:]
+            for i in range(2):
+                prohibited_range[i] -= prohibited_range[i+2]//2
+                prohibited_range[i+2] = prohibited_range[i] + prohibited_range[i+2]*2
+            while True:
+                xy = random.randint(0+rad, WIDTH-rad), random.randint(0+rad, HEIGHT-rad)
+                if not (prohibited_range[0] < xy[0] < prohibited_range[2]):
+                    if not (prohibited_range[1] < xy[1] < prohibited_range[3]):
+                        break
+            return xy
+
         self.img = pg.Surface((2*rad, 2*rad))
         pg.draw.circle(self.img, color, (rad, rad), rad)
         self.img.set_colorkey((0, 0, 0))
         self.rct = self.img.get_rect()
-        self.rct.center = random.randint(0+rad, WIDTH-rad), random.randint(0+rad, HEIGHT-rad)
+
+        self.rct.center = gen_rec_rand_xy()
+            
+            
         random.randint(0, 360)
         angle = math.radians(random.randint(0, 360))
         self.vx, self.vy = math.cos(angle)*5, math.sin(angle)*5
@@ -411,7 +430,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
     bird = Bird(3, (int(WIDTH*9/16), int(HEIGHT*4/9)))
-    bombs = [Bomb((255, 0, 0), random.randint(1, 25)) for i in range(3)]
+    bombs = [Bomb((255, 0, 0), random.randint(1, 25), bird) for i in range(3)]
     beam = Beam()
     expl = explosion()
     sco = Score()
@@ -452,7 +471,7 @@ def main():
                 happy_count = -30
                 expl.Make(bombs[i].rct)
                 sco.count_up()
-                bombs.append(Bomb((255, 0, 0), random.randint(1, 25)))
+                bombs.append(Bomb((255, 0, 0), random.randint(1, 25), bird))
         for i in del_index:
             del bombs[i]
         #  更新
