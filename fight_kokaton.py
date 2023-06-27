@@ -425,6 +425,9 @@ class Surfaces:
             return
         
     def set_rects(self, rects: list[pg.Rect, ...]):
+        """
+            現在位置rectを更新する
+        """
         if len(rects) != 1:
             if len(rects) != len(self.surfaces):
                 raise TypeError(
@@ -434,9 +437,15 @@ class Surfaces:
             self.__move_result[i] = rects[i]
 
     def set_rect(self, rect: list[pg.Rect], index: int):
+        """
+            現在位置rectをrectに更新
+        """
         self.__move_result[index][:2] = rect[:2]
 
     def del_surface(self, index: int):
+        """
+            引数indexのSurfaceを削除
+        """
         del self.surfaces[index]
         del self.rects[index]
         del self.__move_result[index]
@@ -544,3 +553,7 @@ if __name__ == "__main__":
     main()
     pg.quit()
     sys.exit()
+
+"""
+    in test4
+"""
