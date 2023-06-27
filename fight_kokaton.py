@@ -186,20 +186,32 @@ class Beam:
         return len(del_key) > 0
     
 class explosion:
+    """
+        爆裂！
+    """
 
     def __init__(self) -> None:
+        """
+            setup variables and surface
+        """
         self.explosion_img = [pg.image.load("ex03/fig/explosion.gif")]
         self.explosion_img.append(pg.transform.flip(self.explosion_img[0], True, True))
         self.explosions = list()
         self.explosions_count = list()
     
     def Make(self, rect: pg.Rect):
+        """
+            make new beam
+        """
         self.explosions.append(Surfaces(self.explosion_img))
         self.explosions[-1].set_rects([rect for i in range(2)]) 
         self.explosions_count.append(0)
         return
     
     def Update(self, screen: pg.Surface):
+        """
+            meam updata and del surface
+        """
         del_index = list()
         for i in range(len(self.explosions)):
             self.explosions_count[i] += 1
@@ -213,8 +225,14 @@ class explosion:
         return
         
 class Score:
+    """
+        点数表示
+    """
 
     def __init__(self):
+        """
+            setup font, color and score 
+        """
         self.font = pg.font.SysFont("hgp創英角ﾎﾟｯﾌﾟ体", 30)
         self.color = (0, 0, 255)
         self.score = -1
@@ -222,11 +240,17 @@ class Score:
         self.count_up()
         
     def count_up(self):
+        """
+            score count up
+        """
         self.score += 1
         self.sco_img = self.font.render(f"スコア:{self.score}", 0, self.color)
         return
     
     def draw_score(self, screen: pg.Surface):
+        """
+            draw score surface
+        """
         screen.blit(self.sco_img, self.sco_img.get_rect())
         return
 
@@ -382,6 +406,7 @@ def SurDicts(surfaces: list["Surface", ...], keys: list[str, ...] | list[tuple, 
 
 
 def main():
+    # setup class and variables
     pg.display.set_caption("たたかえ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
@@ -394,7 +419,10 @@ def main():
     clock = pg.time.Clock()
     tmr = 0
     happy_count = 1
+
+    # main loop
     while True:
+        # events
         key_lst = pg.key.get_pressed()
 
         for event in pg.event.get():
@@ -404,9 +432,11 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_SPACE:
                     beam.MakeBeam(bird)
-      
+
+        # draw and judge
+
         screen.blit(bg_img, [0, 0])
-        
+
         del_index = list()
         for i in range(len(bombs)):
             if bird.rct.colliderect(bombs[i].rct):
@@ -425,7 +455,7 @@ def main():
                 bombs.append(Bomb((255, 0, 0), random.randint(1, 25)))
         for i in del_index:
             del bombs[i]
-        # 更新
+        #  更新
         for i in range(len(bombs)):
             bombs[i].update(screen)
 
@@ -433,13 +463,13 @@ def main():
         if happy_count < 1: inv = True
         bird.update(key_lst, screen, invaldation_angle=inv)
         beam.Load(screen)
-
         expl.Update(screen)
 
         sco.draw_score(screen)
 
         pg.display.update()
 
+        # count process
         if happy_count == 0:
             bird.change_img(3, screen)
             bird.update(key_lst, screen)
